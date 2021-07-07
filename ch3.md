@@ -114,6 +114,7 @@ const char *inet_ntop(int family, const void *addrptr, char*strptr, size_t len);
 
     ```c
     // 请求量过大时需要多次调用read（因为UNIX缓冲区有限）
+    // read返回字节数为0时结束，否则将指针偏移后继续读，nleft跟踪剩余字节数
     #include "unp.h"
     ssize_t readn(int fd, void *vptr, size_t n){
         size_t nleft;
@@ -134,6 +135,54 @@ const char *inet_ntop(int family, const void *addrptr, char*strptr, size_t len);
             ptr += nread;
         }
         return (n-nleft);
+    }
+    
+    
+    // 同理，当write字节过多时不断写入缓冲区
+    ssize_t writen(int fd, const void *vptr, size_t n){
+    	size_t nleft;
+        ssize_t nwritten;
+        const char *ptr;
+        
+        ptr = vptr;
+        nleft = n;
+        while( nleft > 0 ) {
+    		if((nwritten = write(fd, ptr, nleft)) <= 0){
+                if(nwritten < 0 && errno == EINTR)
+                    nwritten = 0;
+                else
+                    return -1;
+            }
+            nleft -= nwritten;
+            ptr += nwritten;
+        }
+        
+        return n;
+    }
+    
+    ssize_t readline(int fd, void *vptr, size_t maxlen){
+        ssize_t n, rc;
+        char c, *ptr;
+        ptr = vptr;
+        for(n = 1; n < maxlen; n++){
+        again:
+            if((rc = read(fd, &c, 1)) == 1){
+                *ptr++ = c;
+                if(c == '\n')
+                    break;
+            }
+            else if (rc == 0) {
+                *ptr = 0;
+                return n-1;
+            }
+            else {
+                if(errno == EINTR)
+                    	goto again;
+                return -1
+            }
+        }
+        *ptr = 0;
+        return n;
     }
     ```
 
