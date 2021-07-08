@@ -51,3 +51,41 @@ int accept(int sockfd, struct sockaddr *cliaddr, socklen_t *adddrlen)
     1. accept由TCP服务器调用，若已完成连接队列为空则进程投入睡眠
     2. 返回值是由内核自动生成的一个客户套接字(client_socket)
     3. *一个服务器通常仅仅创建一个监听套接字（accpet的第一个参数sockfd）
+
+7. *exec函数族按a. 路径/文件名 b. 使用参数指针/一个一个参数 c.是否改变环境*
+
+8. 并发服务器
+```c
+pid_t pid;
+int listenfd, connfd;
+listenfd = socket();
+
+bind(listenfd, ...);
+listen(listenfd, LISTENQ);
+for(; ; ){
+    connfd = accept(listenfd, ...);
+    if( pid = fork() == 0){
+        close(listenfd); // child closes listening socket
+        do(connfd); // process the request
+        close(connfd);
+        exit(0); // child terminates;
+    }
+    close(connfd);
+}
+```
+
+    以上是一个并发服务器的大致框架，主进程持续监听连接请求，子进程处理客户请求
+    注意的是：
+        a. fork后子进程会继承父进程所有的file descriptor
+
+9. getsockname()和getpeername()
+    这两个函数返回与某个套接字关联的协议地址
+    ```c
+    int getsockname(int sockfd, struct sockaddr *localaddr, socklen_t*addrlen);
+    int getpeername(int sockfd, struct sockaddr *peeraddr, socklen_t*addrlen);
+    ```
+
+    使用这两个函数的理由如下：
+    1. TCP客户没有调用bind，connect成功后，getsockname返回内核赋予该连接的本地IP地址和端口号
+    2. 服务器使用0调用bind后，getsockname返回内核赋予的本地端口
+    3. 服务器fork后子进程如果要使用exec替换成别的程序（比如说telnet）之后，首先调用getpeername用于获取客户的IP地址和端口号*（clntfd还留着，但是accept回来的clnt_addr, clnt_port等丢失）*
