@@ -2,18 +2,17 @@
 
 char buf[48];
 
-void inet_pnet_loose(const char* strptr, struct in_addr *addptr){
-    if(inet_pton(AF_INET, strptr, (char*)buf) == 1){
+void inet_pnet_loose(const char* strptr, struct in6_addr *addptr){
+    if(inet_pton(AF_INET6, strptr, (char*)buf) == 1){
         printf("inet_pton success!\n");
-        printf("IPv4 address is: %s\n", buf);
+        printf("IPv6 address is: %s\n", buf);
     }
     else
         printf("inet_pton failed!\n");
     
     if(inet_aton(strptr, addptr) == 1){
         printf("inet_aton success!\n");
-        printf("IPv4 address is %x\n%x\n", inet_lnaof(*addptr), inet_netof(*addptr));
-
+        printf("IPv6 address is %d\n", addptr->s6_addr);
     }
     
 };
@@ -23,7 +22,7 @@ int main(int argc, char** argv){
         printf("./loose <addr_str>\n");
         exit(1);
     }
-    struct in_addr *addptr = malloc(sizeof(struct in_addr)); 
+    struct in6_addr *addptr = malloc(sizeof(struct in6_addr)); 
     inet_pnet_loose(argv[1], addptr);
 
     exit(0);
