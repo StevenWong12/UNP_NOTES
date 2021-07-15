@@ -1,13 +1,16 @@
 #include "unp.h"
+#include "sum.h"
 
-void sig_chld(int signo){
-    pid_t pid;
-    int stat;
-
-    while( (pid = waitpid(-1, &stat, WNOHANG)) > 0 )
-        printf("child %d terminated\n", pid);
-
-    return ;
+void str_echo(int sockfd){
+    ssize_t n;
+    struct args args;
+    struct result result;
+    for( ; ; ){
+        if((n = Readn(sockfd, &args, sizeof(args))) == 0)
+            return;
+        result.sum = args.arg1 + args.arg2;
+        Writen(sockfd, &result, sizeof(result));
+    }
     
 }
 
@@ -27,8 +30,6 @@ int main(int argc, char **argv){
     Bind(listenfd, (SA*) &servaddr, sizeof(servaddr));
 
     Listen(listenfd, LISTENQ);
-
-    Signal(SIGCHLD, sig_chld);
 
     for( ; ; ){
         clilen = sizeof(cliaddr);
