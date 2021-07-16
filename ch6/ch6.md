@@ -64,3 +64,57 @@
 int select(int maxfdpl, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout)  
 ```
 
+
+
+1. 对于timeout参数:
+
+   * 设置为空指针:仅在有一个描述符准备好IO时才返回
+
+   * 设置一个(非0)值:在有一个描述符准备好IO时返回,但不超过timeout指向的秒数和微秒数
+
+   * 设置为0,根本不等待,在检查描述符后立即返回,这称为轮询(polling)
+
+
+
+
+
+**从可移植性考虑,在捕获信号时,必须做好select返回EINTR错误的准备**
+
+2. 对于其他的参数
+
+   select使用描述符集(file descriptor),每个set都是一个整数数组,其中**每一位**对应一个描述符, 举例来说:
+
+   * 假设使用32位整数,数组的第一个元素对应于描述符0~31
+   * 第二个元素对应于32~63
+   * 以此类推
+
+   *实现的细节都在fd_set和四个宏中*
+
+   ```c
+   void FD_ZERO(fd_set *fdset); // clear all bits in fdset
+   // 在使用fdset之前一定要将其FD_ZERO(将其初始化)
+   void FD_SET(int fd, fd_set *fdset); // turn on the bit for fd in fdset
+   void FD_CLR(int fd, fd_set *fdset); // turn off the bit for fd in fdset
+   void FD_ISSET(int fd, fd_set *fdset); // test whether the bit for fd is in fdset;
+   ```
+
+3. 描述符就绪条件
+
+   1. 满足以下四个条件中的任何一个时,一个套接字准备好读
+      * 接收缓存区数据字节数 >= 接收缓冲区低水位标记的当前大小(SO_RCVLOWAT)
+      * 连接的读半部关闭(接收了FIN),这样的socket不阻塞并直接返回0
+      * 是一个监听套接字(调用了listen)且已经完成的连接数不为0
+      * 套接字上有错误待处理,不阻塞并返回-1, errno设置为具体的错误条件, 可以通过指定SO_ERROR选项调用getsockopt获取并清除
+   2. 满足下列四个条件之一时,一个套接字准备好写
+      * 套接字发送缓冲区可用空间字节数大于等于套接字发送缓冲区低水位标记的当前大小,且该套接字已连接(或不需要连接)
+      * 该连接的写半部关闭,对这样的套接字写将产生SIGPIPE信号
+      * 使用非阻塞式connect的套接字已建立连接
+      * 其上有一个套接字错误待处理
+
+*注意:当某个套接字上有错误时,select将其标记为既可读又可写*
+
+
+
+4. 批量输入时的缓冲区大小问题
+
+   
