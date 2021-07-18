@@ -1,4 +1,4 @@
-## I/O复用:select和poll函数
+##  I/O复用:select和poll函数
 
 再ch5可以看到,被阻塞于fgets的客户端无视了服务器发过来的FIN信号(处于CLOSE_WAIT状态),**所以我们需要一种预先告知内核的能力**,使得内核一旦发现进程指定的一个或多个I/O条件就绪:
 
@@ -145,3 +145,67 @@ int select(int maxfdpl, fd_set *readset, fd_set *writeset, fd_set *exceptset, co
 
 *服务器程序可以用select来处理任意个客户的单进程程序，而不是为每个客户派生一个子程序*
 
+
+
+**当有客户到达时，我们在client数组中的第一个可用项中记录其已连接套接字的描述符，并加入到fdset中**
+
+# pselect 函数
+
+是POSIX定义的一个函数
+
+```c
+int pselect(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timespec *timeout, const sigset_t *sigmask);
+```
+
+与select的不同：
+
+1. 使用了timespec而不是timeval（**timespec第二个成员指定纳秒数，timeval第二个成员指定微秒数**）
+2. 增加了第六个参数：**一个指向信号掩码的指针**，该参数允许程序禁止递交某些信号
+
+
+
+# poll函数
+
+poll提供的功能与select类似，不过在处理流设备时能够提供额外的信息
+
+```c
+int poll(struct pollfd *fdarray, unsigned long nfds, int timeout);
+
+struct pollfd {
+	int fd; // fd to check
+    short events; // events of interest on fd
+    short revents; // events that occurred on fd
+};
+```
+
+1. pollfd中使用了events和revents分别代表测试的条件以及描述符的状态，一个为调用值，另一个为返回结果，从而避免了使用值-结果参数
+2. 以下为events以及revents的一些常值
+
+| 常值       | 可以作为event？ | 可以作为revent？ | 说明                     |
+| ---------- | --------------- | ---------------- | ------------------------ |
+| POLLIN     | √               | √                | 普通或优先带数据可读     |
+| POLLRDNORM | √               | √                | 普通数据可读             |
+| POLLRDBAND | √               | √                | 优先级带数据可读         |
+| POLLPRI    | √               | √                | 高优先级数据可读         |
+| POLLOUT    | √               | √                | 普通或优先带数据可写     |
+| POLLWRNORM | √               | √                | 普通数据可写             |
+| POLLWRBAND | √               | √                | 优先级带数据可写         |
+| POLLER     |                 | √                | 发生错误                 |
+| POLLHUP    |                 | √                | 发生挂起                 |
+| POLLNVAL   |                 | √                | 描述符不是一个打开的文件 |
+
+3. timeout指定poll返回前等待多长时间，单位是毫秒
+   * =INFTIM 时永远等待
+   * =0时立即返回，不阻塞进程
+
+
+
+# 习题总结
+
+1. fdset是一个结构体，结构体中包含这个数组，而c允许结构跨等号赋值
+2. 若select告诉我们一个socket可写，那么缓冲区就有8192可用空间，但如果我们以8193长度对阻塞式socket调用write时，write会阻塞以等待一个字节的可用空间，**对阻塞式套接字的写操作将会一直阻塞到所有数据都能被内核接受为止**
+3. 没有对两个fd进行轮询，忽略了两个fd均就绪的情况
+4. 8192
+5. 持续发送数据，tcp确认后扔掉他们
+6. **shutdown会发送FIN，而close只有在调用时描述符引用计数为1时才发送FIN**
+7. 服务器会直接退出，但在6-26处理了这种情况
