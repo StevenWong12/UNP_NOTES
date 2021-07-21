@@ -204,7 +204,7 @@ fcntl(file control)函数可执行各种描述符控制操作，提供了网络�
    * **第一个客户调用setsockopt bind connect，如果第二个客户在第一个客户调用bind和connect之间调用bind则会返回EADDRINUSE错误，然而当第一个客户已连接到对端（connect完成）第二个客户的bind就正常工作，处理的方法就是返回EADDRINUSE时尝试多次调用bind而不是出现错误立即abort**
 5. 不需要指定SO_REUSEADDR(why?之前写的测试程序也不需要)
 6. 看不出来区别诶..?
-7. 保留发送回来的ICMP报文？允许底层的协议debug？
+7. **不起任何作用，因为ping使用ICMP套接字，而SO_DEBUG只影响TCP套接字**
 
 11. 根据RFC1122，ACK延迟应该小于0.5s，而且在完全大小分节流上至少每隔一个分节就有一个ACK
 12. 父进程大部分时间阻塞在accept上，子进程则阻塞在read上，**keepalive对监听套接字不起作用**，子进程read返回ETIMEDOUT
