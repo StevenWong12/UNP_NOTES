@@ -187,6 +187,11 @@ int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t
 
 ...
 
+
+
+sudo apt install -y php7.0-gd php7.0-json php7.0-mysql php7.0-curl php7.0-mbstring php7.0-intl php7.0-mcrypt php-imagick php7.0-xml php7.0-zip
+
+
 # fcntl函数
 
 fcntl(file control)函数可执行各种描述符控制操作，提供了网络编程相关的如下特性：
