@@ -21,6 +21,7 @@ int main(int argc, char **argv){
         err_quit("inet_pton error for %s", argv[1]);
 
     // get mss and buffer
+    
     getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &recvbuf, &len);
     getsockopt(mss, IPPROTO_TCP, TCP_MAXSEG, &mss, &len);
     printf("before connect\nrecvbuf: %d\nmss: %d\n", recvbuf, mss);
